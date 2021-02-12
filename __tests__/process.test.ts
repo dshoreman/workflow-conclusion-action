@@ -78,6 +78,23 @@ describe('getJobConclusions', () => {
       'test3',
     ]);
   });
+
+  it('should exclude conclusions', () => {
+    process.env.INPUT_EXCLUDE_JOBS = 'test(4|6)';
+
+    expect(getJobConclusions([
+      {name: 'test1', conclusion: 'success'},
+      {name: 'test2', conclusion: 'skipped'},
+      {name: 'test3', conclusion: 'neutral'},
+      {name: 'test4', conclusion: 'failure'},
+      {name: 'test5', conclusion: 'success'},
+      {name: 'test6', conclusion: 'failure'},
+    ])).toEqual([
+      'success',
+      'skipped',
+      'neutral',
+    ]);
+  });
 });
 
 describe('getWorkflowConclusion', () => {

@@ -8,27 +8,32 @@ import {CONCLUSIONS} from './constant';
 
 type ActionsListJobsForWorkflowRunResponseData = components['schemas']['job'];
 
-export const getTargetRunId = (context: Context): number => /^\d+$/.test(getInput('TARGET_RUN_ID')) ? Number(getInput('TARGET_RUN_ID')) : context.runId;
+export const getTargetRunId = (context: Context): number =>
+  /^\d+$/.test(getInput('TARGET_RUN_ID'))
+    ? Number(getInput('TARGET_RUN_ID'))
+    : context.runId;
 
-export const getJobs = async(octokit: Octokit, context: Context): Promise<Array<ActionsListJobsForWorkflowRunResponseData>> => octokit.paginate(
+export const getJobs = async(octokit: Octokit, context: Context):
+  Promise<Array<ActionsListJobsForWorkflowRunResponseData>> => octokit.paginate(
   octokit.actions.listJobsForWorkflowRun,
-  {
-    ...context.repo,
-    'run_id': getTargetRunId(context),
-  },
+  {...context.repo, 'run_id': getTargetRunId(context)},
 );
 
-export const getJobConclusions = (jobs: Array<{ name: string; conclusion: string | null }>): Array<string> => Utils.uniqueArray(
-  Object.values(
+export const getJobConclusions = (jobs: Array<{ name: string; conclusion: string | null }>): Array<string> => {
+  const exclusions = '' === getInput('EXCLUDE_JOBS') ? null : new RegExp(getInput('EXCLUDE_JOBS'));
+
+  return Utils.uniqueArray(Object.values(
     jobs
-      .filter(job => null !== job.conclusion)
+      .filter(job => null !== job.conclusion && (null === exclusions || !exclusions.test(job.name)))
       .map(job => ({name: job.name, conclusion: String(job.conclusion)}))
-      .reduce((acc, job) => ({...acc, [job.name]: job.conclusion}), {}),
-  ),
-);
+      .reduce((acc, job) => ({...acc, [job.name]: job.conclusion}), {})
+  ));
+};
 
-// eslint-disable-next-line no-magic-numbers
-export const getWorkflowConclusion = (conclusions: Array<string>): string => CONCLUSIONS.filter(conclusion => conclusions.includes(conclusion)).slice(-1)[0] ?? getInput('FALLBACK_CONCLUSION');
+const lastIndex = -1;
+export const getWorkflowConclusion = (conclusions: Array<string>): string => CONCLUSIONS.filter(
+  conclusion => conclusions.includes(conclusion)
+).slice(lastIndex)[0] ?? getInput('FALLBACK_CONCLUSION');
 
 export const execute = async(logger: Logger, octokit: Octokit, context: Context): Promise<void> => {
   const jobs        = await getJobs(octokit, context);
