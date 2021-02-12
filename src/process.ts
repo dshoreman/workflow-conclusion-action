@@ -19,13 +19,16 @@ export const getJobs = async(octokit: Octokit, context: Context):
   {...context.repo, 'run_id': getTargetRunId(context)},
 );
 
-export const getJobConclusions = (jobs: Array<{ name: string; conclusion: string | null }>):
-  Array<string> => Utils.uniqueArray(Object.values(
-  jobs
-    .filter(job => null !== job.conclusion)
-    .map(job => ({name: job.name, conclusion: String(job.conclusion)}))
-    .reduce((acc, job) => ({...acc, [job.name]: job.conclusion}), {}),
-));
+export const getJobConclusions = (jobs: Array<{ name: string; conclusion: string | null }>): Array<string> => {
+  const exclusions = '' === getInput('EXCLUDE_JOBS') ? null : new RegExp(getInput('EXCLUDE_JOBS'));
+
+  return Utils.uniqueArray(Object.values(
+    jobs
+      .filter(job => null !== job.conclusion && (null === exclusions || !exclusions.test(job.name)))
+      .map(job => ({name: job.name, conclusion: String(job.conclusion)}))
+      .reduce((acc, job) => ({...acc, [job.name]: job.conclusion}), {})
+  ));
+};
 
 const lastIndex = -1;
 export const getWorkflowConclusion = (conclusions: Array<string>): string => CONCLUSIONS.filter(

@@ -17,6 +17,10 @@ inputs:
     description: Env name
     required: false
     default: WORKFLOW_CONCLUSION
+  EXCLUDE_JOBS:
+    description: Regular expression matching Job names that are allowed to fail
+    required: false
+    default: null
   FALLBACK_CONCLUSION:
     description: Fallback conclusion
     required: false
